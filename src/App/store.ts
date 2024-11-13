@@ -1,5 +1,5 @@
 import PocketBase from 'pocketbase';
-import { Node, Edge } from 'reactflow';
+import { Node, Edge, NodeChange, EdgeChange } from 'reactflow';
 import { create } from 'zustand';
 import { nanoid } from 'nanoid/non-secure';
 import { NodeData } from './MindMapNode';
@@ -19,8 +19,8 @@ export type RFState = {
   nodes: MindMapNode[];
   edges: Edge[];
   currentMapId: string | null;
-  onNodesChange: (changes: any[]) => void;
-  onEdgesChange: (changes: any[]) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
   addChildNode: (parentNode: Node, position: { x: number; y: number }) => void;
   saveMindMap: (name: string) => Promise<void>;
@@ -41,7 +41,7 @@ const useStore = create<RFState>((set, get) => ({
   edges: [],
   currentMapId: null,
 
-  onNodesChange: (changes) => {
+  onNodesChange: (changes: NodeChange[]) => {
     set({
       nodes: changes.reduce((nodes, change) => {
         if (change.type === 'remove') {
@@ -58,7 +58,7 @@ const useStore = create<RFState>((set, get) => ({
     });
   },
 
-  onEdgesChange: (changes) => {
+  onEdgesChange: (changes: EdgeChange[]) => {
     set({
       edges: changes.reduce((edges, change) => {
         if (change.type === 'remove') {
@@ -81,7 +81,7 @@ const useStore = create<RFState>((set, get) => ({
   },
 
   addChildNode: (parentNode: Node, position: { x: number; y: number }) => {
-    const newNode = {
+    const newNode: MindMapNode = {
       id: nanoid(),
       type: 'mindmap',
       data: { label: 'New Node' },
@@ -90,7 +90,7 @@ const useStore = create<RFState>((set, get) => ({
       parentNode: parentNode.id,
     };
 
-    const newEdge = {
+    const newEdge: Edge = {
       id: nanoid(),
       source: parentNode.id,
       target: newNode.id,

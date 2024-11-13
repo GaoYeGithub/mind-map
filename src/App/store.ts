@@ -1,5 +1,5 @@
 import PocketBase from 'pocketbase';
-import { Node, Edge, NodeChange, EdgeChange } from 'reactflow';
+import { Node, Edge, NodeChange, EdgeChange, XYPosition } from 'reactflow';
 import { create } from 'zustand';
 import { nanoid } from 'nanoid/non-secure';
 import { NodeData } from './MindMapNode';
@@ -22,7 +22,7 @@ export type RFState = {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
-  addChildNode: (parentNode: Node, position: { x: number; y: number }) => void;
+  addChildNode: (parentNode: Node, position: XYPosition) => void;
   saveMindMap: (name: string) => Promise<void>;
   loadMindMap: (id: string) => Promise<void>;
   createNewMindMap: () => void;
@@ -43,24 +43,25 @@ const useStore = create<RFState>((set, get) => ({
 
   onNodesChange: (changes: NodeChange[]) => {
     set({
-      nodes: changes.reduce((nodes, change) => {
+      nodes: changes.reduce((nodes: MindMapNode[], change) => {
         if (change.type === 'remove') {
           return nodes.filter((node) => node.id !== change.id);
         } else if (change.type === 'position' && change.position) {
           return nodes.map((node) =>
             node.id === change.id
-              ? { ...node, position: change.position }
+              ? { ...node, position: change.position as XYPosition }
               : node
           );
         }
         return nodes;
-      }, get().nodes),
+      }, get().nodes as MindMapNode[]),
     });
   },
+  
 
   onEdgesChange: (changes: EdgeChange[]) => {
     set({
-      edges: changes.reduce((edges, change) => {
+      edges: changes.reduce((edges: Edge[], change) => {
         if (change.type === 'remove') {
           return edges.filter((edge) => edge.id !== change.id);
         }
@@ -80,7 +81,7 @@ const useStore = create<RFState>((set, get) => ({
     });
   },
 
-  addChildNode: (parentNode: Node, position: { x: number; y: number }) => {
+  addChildNode: (parentNode: Node, position: XYPosition) => {
     const newNode: MindMapNode = {
       id: nanoid(),
       type: 'mindmap',

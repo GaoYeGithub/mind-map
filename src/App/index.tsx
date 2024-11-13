@@ -9,6 +9,7 @@ import ReactFlow, {
   useStoreApi,
   Controls,
   Panel,
+  Edge,
 } from 'reactflow';
 import shallow from 'zustand/shallow';
 import useStore, { RFState } from './store';
@@ -32,7 +33,7 @@ const selector = (state: RFState) => ({
 });
 
 const nodeTypes = {
-  mindmap: MindMapNode,
+  mindmap: MindMapNode as typeof MindMapNode,
 };
 
 const edgeTypes = {
@@ -42,6 +43,11 @@ const edgeTypes = {
 const nodeOrigin: NodeOrigin = [0.5, 0.5];
 const connectionLineStyle = { stroke: '#F6AD55', strokeWidth: 3 };
 const defaultEdgeOptions = { style: connectionLineStyle, type: 'mindmap' };
+
+interface RecordModel {
+  id: string;
+  name?: string;
+}
 
 function Flow() {
   const store = useStoreApi();
@@ -54,12 +60,21 @@ function Flow() {
     saveMindMap,
     loadMindMap,
     createNewMindMap,
-  } = useStore(selector, shallow);
+  } = useStore(selector, shallow) as { 
+    nodes: Node[]; 
+    edges: Edge[]; 
+    onNodesChange: (changes: any) => void;
+    onEdgesChange: (changes: any) => void;
+    addChildNode: (parentNode: Node, position: { x: number; y: number }) => void;
+    saveMindMap: (name: string) => Promise<void>;
+    loadMindMap: (id: string) => Promise<void>;
+    createNewMindMap: () => void;
+  };
 
   const { project } = useReactFlow();
   const connectingNodeId = useRef<string | null>(null);
 
-  const [savedMindMaps, setSavedMindMaps] = useState([]);
+  const [savedMindMaps, setSavedMindMaps] = useState<RecordModel[]>([]);
 
   useEffect(() => {
     const fetchMindMaps = async () => {
@@ -67,7 +82,7 @@ function Flow() {
         const mindMaps = await client.collection('mindmaps').getFullList({
           sort: '-created',
         });
-        setSavedMindMaps(mindMaps);
+        setSavedMindMaps(mindMaps as RecordModel[]);
       } catch (error) {
         console.error('Error fetching mind maps:', error);
       }
@@ -108,7 +123,7 @@ function Flow() {
       if (node) {
         node.querySelector('input')?.focus({ preventScroll: true });
       } else if (targetIsPane && connectingNodeId.current) {
-        const parentNode = nodeInternals.get(connectingNodeId.current) as MindMapNode;
+        const parentNode = nodeInternals.get(connectingNodeId.current) as Node;
         const childNodePosition = getChildNodePosition(event, parentNode);
 
         if (parentNode && childNodePosition) {
@@ -129,7 +144,7 @@ function Flow() {
     }
   };
 
-  const handleLoad = async (id) => {
+  const handleLoad = async (id: string) => {
     try {
       await loadMindMap(id);
       alert('Mind map loaded successfully!');
